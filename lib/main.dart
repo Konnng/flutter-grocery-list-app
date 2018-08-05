@@ -15,10 +15,16 @@ class GroceryList extends StatefulWidget {
 
 class GroceryListState extends State<GroceryList> {
   final GlobalKey<FormState> _formGroceryAdd = new GlobalKey<FormState>();
+  final GlobalKey<FormState> _formGroceryBatchAdd = new GlobalKey<FormState>();
 
   List<GroceryItem> _groceryItems = [];
   GroceryItem _formGroceryData = new GroceryItem();
+  String _formBatchGroceryData = '';
   BuildContext _context;
+
+  void _showSnackBar(String text) {
+    Scaffold.of(this._context).showSnackBar(SnackBar(content: new Text(text)));
+  }
 
   void _addGroceryItem(String title, int amount) {
     setState(() { 
@@ -69,13 +75,15 @@ class GroceryListState extends State<GroceryList> {
   }
 
   bool _saveGroceryForm([ dynamic item = false ]) {
+    var grocery;
+
     if (!this._formGroceryAdd.currentState.validate()) {
       return false;
     }
-
-    var grocery = this._formGroceryData;
-
+    
     this._formGroceryAdd.currentState.save();
+
+    grocery = this._formGroceryData;
 
     if (item is GroceryItem) {
       item.title = grocery.title;
@@ -91,6 +99,34 @@ class GroceryListState extends State<GroceryList> {
     return true;
   }
 
+  bool _saveGroceryBatchForm() {
+    Iterable<GroceryItem> groceryList;
+    if (!this._formGroceryBatchAdd.currentState.validate()) {
+      return false;
+    }
+
+    this._formGroceryBatchAdd.currentState.save();
+
+    groceryList = this._formBatchGroceryData.split('\n').where((item) => item.toString().trim().isNotEmpty).map((item) {
+      List<String> groceryData = item.split(':').map((item) => item.toString().trim()).toList();
+
+      GroceryItem grocery = new GroceryItem(title: groceryData[0]);
+      if (groceryData.length > 1) {
+        grocery.amount = isNumeric(groceryData.last) ? int.parse(groceryData.last) : 1;
+      } else {
+        grocery.amount = 1;
+      }
+
+      return grocery;
+    });
+
+    groceryList.forEach((GroceryItem item) {
+      this._addGroceryItemObject(item);
+    });
+
+    return true;
+  }
+
   void _pushAddScreen() {
     Navigator.of(context).push(
       new MaterialPageRoute(
@@ -102,6 +138,33 @@ class GroceryListState extends State<GroceryList> {
             body: new Container(
               padding: const EdgeInsets.all(5.0),
               child: this._buildGroceryFormComponent()
+            )
+          );
+        }
+      )
+    );
+  }
+
+  void _pushAddBatchScreen() {
+    Navigator.of(context).push(
+      new MaterialPageRoute(
+        builder: (context) {
+          return new Scaffold(
+            appBar: new AppBar(
+              title: new Text('Add new Grocery List'),
+              actions: <Widget>[
+                  new IconButton(
+                    icon: new Icon(Icons.delete),
+                    tooltip: 'Clear Grocery List',
+                    onPressed: () {
+                      this._promptRemoveGroceryBatchList();
+                    },
+                  ),
+              ]
+            ),
+            body: new Container(
+              padding: const EdgeInsets.all(5.0),
+              child: this._buildGroceryBatchFormComponent()
             )
           );
         }
@@ -170,6 +233,31 @@ class GroceryListState extends State<GroceryList> {
               child: new Text('DELETE'),
               onPressed: () {
                 _removeGroceryList();
+                Navigator.of(context).pop();
+              }
+            )
+          ]
+        );
+      }
+    );
+  }
+
+  void _promptRemoveGroceryBatchList() {
+    // TODO: add check to not show prompt if list is empty.
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return new AlertDialog(
+          title: new Text('Delete the grocery list?'),
+          actions: <Widget>[
+            new FlatButton(
+              child: new Text('CANCEL'),
+              onPressed: () => Navigator.of(context).pop()
+            ),
+            new FlatButton(
+              child: new Text('DELETE'),
+              onPressed: () {
+                this._formGroceryBatchAdd.currentState.reset();
                 Navigator.of(context).pop();
               }
             )
@@ -257,6 +345,77 @@ class GroceryListState extends State<GroceryList> {
     );
   }
 
+  Form _buildGroceryBatchFormComponent() {
+    return new Form(
+      key: this._formGroceryBatchAdd,
+      child: new ListView(
+        children: <Widget>[
+          new Container(
+            child: new Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                // TODO: find a way to show text label in the top, if the field isn't focused
+                new TextFormField(
+                  maxLines: 20,
+                  autofocus: true,
+                  decoration: new InputDecoration(
+                    labelText: 'Item List',
+                    hintText: 'Enter a grocery list',
+                    contentPadding: const EdgeInsets.all(16.0)
+                  ),
+                  validator: (value) {
+                    if (value.isEmpty) {
+                      return 'Please enter at least one grocery item';
+                    }
+                  },
+                  onSaved: (value) {
+                    this._formBatchGroceryData = value;
+                  },
+                ),
+                new Padding(
+                  padding: new EdgeInsets.all(8.0),
+                  child: new Text(
+                    'One item per line. Use ":" to specifcy the amount.\n' +
+                    'Example:\n' +
+                    'Potatoes:12\n' +
+                    'Tomatoes:6',
+                    style: new TextStyle(fontSize: 12.0, color: Colors.black54),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          new Container(
+            child: new ButtonBar(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                new RaisedButton(
+                  child: new Text('Add Items'),
+                  color: Theme.of(context).primaryColor,
+                  textColor: Colors.white,
+                  elevation: 4.0,
+                  onPressed: () {
+                    if (this._saveGroceryBatchForm()) {
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+                new RaisedButton(
+                  child: new Text('Cancel'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ] 
+            ),
+          ),
+        ]
+      )
+    );
+  }
+
+  // WIDGETS --------------------------------------------------------------------------------------
+
   Widget _buildGroceryList() {
     return new ListView.builder(
       itemBuilder: (context, index) {
@@ -268,23 +427,30 @@ class GroceryListState extends State<GroceryList> {
   }
 
   Widget _buildGroceryItem(GroceryItem item, int index) {
+    Color itemColor = !item.purchased ? Theme.of(context).textTheme.title.color : Colors.black45;
+
     return new Slidable(
       delegate: new SlidableDrawerDelegate(),
       actionExtentRatio: 0.25,
       child: new Container(
         color: Colors.white,
         child: new CheckboxListTile(
-          title: new Text(item.title),
+          title: new Text(
+            item.title,
+            style: new TextStyle(color: itemColor)
+          ),
           subtitle: new Text('Amount: ${item.amount}'),
           value: item.purchased,
           onChanged: (bool value) {
             setState(() { 
               item.markAsPurchased(value); 
               if (value) {
+                itemColor = Colors.black45;
                 item.oldIndex = index;
                 this._removeGroceryItem(index);
                 this._addGroceryItemObject(item);
               } else {
+                itemColor = Theme.of(context).textTheme.title.color;
                 this._removeGroceryItem(index);
                 
                 splice(
@@ -321,10 +487,6 @@ class GroceryListState extends State<GroceryList> {
     );
   }
 
-  void _showSnackBar(String text) {
-    Scaffold.of(this._context).showSnackBar(SnackBar(content: new Text(text)));
-  }
-
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
@@ -347,14 +509,19 @@ class GroceryListState extends State<GroceryList> {
           return this._buildGroceryList();
         }
       ),
-      floatingActionButton: new FloatingActionButton(
-        onPressed: _pushAddScreen,
-        tooltip: 'Add Item',
-        child: new Icon(Icons.add)
-      ),
+      floatingActionButton: new GestureDetector(
+        onLongPress: _pushAddBatchScreen,
+        onTap: _pushAddScreen,
+        child: new FloatingActionButton(
+          onPressed: null,
+          child: new Icon(Icons.add)
+        ),
+      )
     );
   }
 }
+
+// /WIDGETS ---------------------------------------------------------------------------------------
 
 class GrocelyListApp extends StatelessWidget {
   @override

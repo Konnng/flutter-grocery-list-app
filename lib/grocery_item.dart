@@ -3,7 +3,7 @@ class GroceryItem {
   bool purchased = false;
   int id = 0;
   int amount;
-  int oldIndex;
+  int oldIndex = 0;
   int uuid;
 
   void markAsPurchased(bool purchased) {
@@ -20,12 +20,12 @@ class GroceryItem {
 
   Map toMap() {
     Map map = { 
-      id: this.id, 
-      title: this.title, 
-      amount: this.amount, 
-      purchased: this.purchased, 
-      oldIndex: this.oldIndex, 
-      uuid: this.uuid
+      'id': this.id, 
+      'title': this.title, 
+      'amount': this.amount, 
+      'purchased': this.purchased, 
+      'oldIndex': this.oldIndex, 
+      'uuid': this.uuid
     };
     
     return map;
@@ -34,5 +34,11 @@ class GroceryItem {
   GroceryItem({ this.title, this.purchased, this.amount }) {
     this.id = 0;
     this.uuid = this.hashCode;
+    if (this.purchased == null) {
+      this.purchased = false;
+    }
+    if (this.amount == null) {
+      this.amount = 1;
+    }
   }
 }
