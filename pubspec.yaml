@@ -12,6 +12,7 @@ dependencies:
   flutter_slidable: any
   node_shims: any
   flutter_launcher_icons: any
+  badge: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

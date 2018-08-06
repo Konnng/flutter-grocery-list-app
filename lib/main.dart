@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:validator/validator.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import "package:node_shims/js.dart"; 
+import 'package:badge/badge.dart';
 
 import 'grocery_item.dart';
 
@@ -18,6 +19,7 @@ class GroceryListState extends State<GroceryList> {
   final GlobalKey<FormState> _formGroceryBatchAdd = new GlobalKey<FormState>();
 
   List<GroceryItem> _groceryItems = [];
+  String _totalItems = '';
   GroceryItem _formGroceryData = new GroceryItem();
   String _formBatchGroceryData = '';
   BuildContext _context;
@@ -30,6 +32,7 @@ class GroceryListState extends State<GroceryList> {
     setState(() { 
       this._groceryItems.add(new GroceryItem(title: title, amount: amount, purchased: false));
       this._groceryListSort();
+      this._updateItemCount();
     });
   }
 
@@ -37,6 +40,7 @@ class GroceryListState extends State<GroceryList> {
     setState(() { 
       this._groceryItems.add(item);
       this._groceryListSort();
+      this._updateItemCount();
     });
   }
 
@@ -54,11 +58,17 @@ class GroceryListState extends State<GroceryList> {
   }
 
   void _removeGroceryItem(int index) {
-    setState(() => this._groceryItems.removeAt(index));
+    setState(() { 
+      this._groceryItems.removeAt(index); 
+      this._updateItemCount();
+    });
   }
 
   void _removeGroceryList() {
-    setState(() => this._groceryItems = []);
+    setState(() { 
+      this._groceryItems.clear();
+      this._updateItemCount();
+    });
   }
 
   void _groceryListSort() {
@@ -72,6 +82,10 @@ class GroceryListState extends State<GroceryList> {
 
         return 0;
       });
+  }
+
+  void _updateItemCount() {
+    this._totalItems = (this._groceryItems.length != 0 ? this._groceryItems.length : '').toString();
   }
 
   bool _saveGroceryForm([ dynamic item = false ]) {
@@ -446,16 +460,27 @@ class GroceryListState extends State<GroceryList> {
               item.markAsPurchased(value); 
               if (value) {
                 itemColor = Colors.black45;
-                item.oldIndex = index;
                 this._removeGroceryItem(index);
                 this._addGroceryItemObject(item);
               } else {
                 itemColor = Theme.of(context).textTheme.title.color;
                 this._removeGroceryItem(index);
-                
+                int newIndex;
+
+                if (this._groceryItems.isNotEmpty) {
+                  for (newIndex = 0; newIndex < this._groceryItems.length; newIndex++) {
+                    if (this._groceryItems[newIndex].purchased) {
+                      newIndex;
+                      break;
+                    }
+                  }
+                } else {
+                  newIndex = 0;
+                }
+
                 splice(
                   this._groceryItems, 
-                  item.oldIndex, 
+                  newIndex, 
                   0, 
                   [ new GroceryItem(title: item.title, purchased: false, amount: item.amount) ]
                 );
@@ -492,10 +517,22 @@ class GroceryListState extends State<GroceryList> {
     return new Scaffold(
       appBar: new AppBar(
         title: new Text('My Grocery List'),
+        leading: new Padding(
+          padding: EdgeInsets.fromLTRB(15.0, 10.0, 0.0, 0.0),
+          child: this._totalItems.isNotEmpty ? 
+            Badge.before(
+              value: this._totalItems.padLeft(2, '0'),
+              child: new Text(''),
+              color: Colors.white,
+              textStyle: new TextStyle( color: Theme.of(context).primaryColor ),
+              borderColor: Colors.transparent,
+            ) : 
+            null,
+        ),
         actions: <Widget>[
             new IconButton(
               icon: new Icon(Icons.delete),
-              tooltip: 'Action Tool Tip',
+              tooltip: 'Clear Grocery List',
               onPressed: () {
                 this._promptRemoveGroceryList();
               },
@@ -505,6 +542,7 @@ class GroceryListState extends State<GroceryList> {
       body: Builder(
         builder: (context) {
           this._context = context;
+          this._updateItemCount();
 
           return this._buildGroceryList();
         }

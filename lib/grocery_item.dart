@@ -3,7 +3,6 @@ class GroceryItem {
   bool purchased = false;
   int id = 0;
   int amount;
-  int oldIndex = 0;
   int uuid;
 
   void markAsPurchased(bool purchased) {
@@ -24,8 +23,7 @@ class GroceryItem {
       'title': this.title, 
       'amount': this.amount, 
       'purchased': this.purchased, 
-      'oldIndex': this.oldIndex, 
-      'uuid': this.uuid
+      'uuid': this.uuid,
     };
     
     return map;
