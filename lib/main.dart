@@ -6,8 +6,15 @@ import "package:node_shims/js.dart";
 import 'package:badge/badge.dart';
 
 import 'grocery_item.dart';
+import 'db.dart';
 
-void main() => runApp(new GrocelyListApp());
+Db db = new Db();
+
+void main() async {
+  await db.checkDbFileExists;  
+
+  runApp(new GrocelyListApp());
+}
 
 class GroceryList extends StatefulWidget {
   @override
@@ -33,6 +40,8 @@ class GroceryListState extends State<GroceryList> {
       this._groceryItems.add(new GroceryItem(title: title, amount: amount, purchased: false));
       this._groceryListSort();
       this._updateItemCount();
+
+      this._saveDb();
     });
   }
 
@@ -41,6 +50,8 @@ class GroceryListState extends State<GroceryList> {
       this._groceryItems.add(item);
       this._groceryListSort();
       this._updateItemCount();
+
+      this._saveDb();
     });
   }
 
@@ -54,6 +65,8 @@ class GroceryListState extends State<GroceryList> {
       }
       
       this._groceryItems[index] = item;
+
+      this._saveDb();
     });
   }
 
@@ -61,6 +74,8 @@ class GroceryListState extends State<GroceryList> {
     setState(() { 
       this._groceryItems.removeAt(index); 
       this._updateItemCount();
+
+      this._saveDb();
     });
   }
 
@@ -68,6 +83,8 @@ class GroceryListState extends State<GroceryList> {
     setState(() { 
       this._groceryItems.clear();
       this._updateItemCount();
+
+      this._saveDb();
     });
   }
 
@@ -86,6 +103,14 @@ class GroceryListState extends State<GroceryList> {
 
   void _updateItemCount() {
     this._totalItems = (this._groceryItems.length != 0 ? this._groceryItems.length : '').toString();
+  }
+
+  void _saveDb() {
+      db.data['data'] = this._groceryItems.map((item) => item.toMap()).toList();
+
+      debug(db.data);
+
+      db.writeDb();
   }
 
   bool _saveGroceryForm([ dynamic item = false ]) {
@@ -429,6 +454,39 @@ class GroceryListState extends State<GroceryList> {
   }
 
   // WIDGETS --------------------------------------------------------------------------------------
+
+  @override
+  initState() {
+    super.initState();
+
+    db.readDb().then((db) {
+      List data = db['data'].map((item) { 
+        GroceryItem grocery = new GroceryItem(); 
+
+        grocery.id = item['id'];
+        grocery.uuid = item['uuid'];
+        grocery.title = item['title'];
+        grocery.purchased = !!item['purchased'];
+        grocery.amount = item['amount'];
+
+        return grocery;
+      }).toList();
+
+      setState(() {
+        this._groceryItems = List.from(data);
+
+        this._groceryListSort();
+        this._updateItemCount();
+      });
+    });
+
+    // new Future<String>.delayed(new Duration(seconds: 5), () => '["123", "456", "789"]').then((String value) {
+    //   setState(() {
+    //     data = json.decode(value);
+    //   });
+    // });
+  }
+
 
   Widget _buildGroceryList() {
     return new ListView.builder(

@@ -15,6 +15,8 @@ dependencies:
     git: git://github.com/Konnng/node_shims
   flutter_launcher_icons: any
   badge: ^0.0.3
+  path_provider: ^0.4.1
+  dartson: ^1.0.0-alpha+1
 dev_dependencies:
   flutter_test:
     sdk: flutter

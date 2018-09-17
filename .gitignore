@@ -11,3 +11,4 @@ build/
 # CUSTOM IGNORES
 
 pubspec.lock
+ios/Podfile.lock
