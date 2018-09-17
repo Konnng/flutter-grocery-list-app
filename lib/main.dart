@@ -107,9 +107,6 @@ class GroceryListState extends State<GroceryList> {
 
   void _saveDb() {
       db.data['data'] = this._groceryItems.map((item) => item.toMap()).toList();
-
-      debug(db.data);
-
       db.writeDb();
   }
 
@@ -164,6 +161,38 @@ class GroceryListState extends State<GroceryList> {
     });
 
     return true;
+  }
+
+  void _toggleGrocery(int index, bool value) {
+    GroceryItem item = this._groceryItems[index];
+    
+    item.markAsPurchased(value); 
+    if (value) {
+      
+      this._removeGroceryItem(index);
+      this._addGroceryItemObject(item);
+    } else {
+      this._removeGroceryItem(index);
+      int newIndex;
+
+      if (this._groceryItems.isNotEmpty) {
+        for (newIndex = 0; newIndex < this._groceryItems.length; newIndex++) {
+          if (this._groceryItems[newIndex].purchased) {
+            newIndex;
+            break;
+          }
+        }
+      } else {
+        newIndex = 0;
+      }
+
+      splice(
+        this._groceryItems, 
+        newIndex, 
+        0, 
+        [ new GroceryItem(title: item.title, purchased: false, amount: item.amount) ]
+      );
+    }
   }
 
   void _pushAddScreen() {
@@ -514,35 +543,12 @@ class GroceryListState extends State<GroceryList> {
           subtitle: new Text('Amount: ${item.amount}'),
           value: item.purchased,
           onChanged: (bool value) {
-            setState(() { 
-              item.markAsPurchased(value); 
-              if (value) {
-                itemColor = Colors.black45;
-                this._removeGroceryItem(index);
-                this._addGroceryItemObject(item);
-              } else {
-                itemColor = Theme.of(context).textTheme.title.color;
-                this._removeGroceryItem(index);
-                int newIndex;
+            setState(() {
+              itemColor = value ? Colors.black45 : Theme.of(context).textTheme.title.color;
 
-                if (this._groceryItems.isNotEmpty) {
-                  for (newIndex = 0; newIndex < this._groceryItems.length; newIndex++) {
-                    if (this._groceryItems[newIndex].purchased) {
-                      newIndex;
-                      break;
-                    }
-                  }
-                } else {
-                  newIndex = 0;
-                }
-
-                splice(
-                  this._groceryItems, 
-                  newIndex, 
-                  0, 
-                  [ new GroceryItem(title: item.title, purchased: false, amount: item.amount) ]
-                );
-              }
+              this._toggleGrocery(index, value);
+              this._updateItemCount();
+              this._saveDb();
             });
           },
           controlAffinity: ListTileControlAffinity.leading,
