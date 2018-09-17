@@ -9,6 +9,7 @@ For help getting started with Flutter, view our online
 
 ## Road Map
 
+* add list filtering
 * add drag'n drop
 * add option to share grocery list.
 * remove emojis from a grocery item (there is no sense put a emoji, right?).
