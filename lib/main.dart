@@ -4,6 +4,7 @@ import 'package:validator/validator.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import "package:node_shims/js.dart"; 
 import 'package:badge/badge.dart';
+import 'package:diacritic/diacritic.dart';
 
 import 'grocery_item.dart';
 import 'db.dart';
@@ -97,7 +98,7 @@ class GroceryListState extends State<GroceryList> {
           return -1;
         }
 
-        return 0;
+        return removeDiacritics(a.title.toLowerCase()).compareTo(removeDiacritics(b.title.toLowerCase()));
       });
   }
 
@@ -143,7 +144,13 @@ class GroceryListState extends State<GroceryList> {
 
     this._formGroceryBatchAdd.currentState.save();
 
-    groceryList = this._formBatchGroceryData.split('\n').where((item) => item.toString().trim().isNotEmpty).map((item) {
+    groceryList = this._formBatchGroceryData.split('\n').where((item) => item.toString().trim().isNotEmpty).where((groceryItem) {
+        var foundItems = this._groceryItems.where((item) {
+            return removeDiacritics(item.title.toLowerCase()) == removeDiacritics(groceryItem.trim().toLowerCase());
+        }).toList();
+        
+        return foundItems.length == 0;
+    }).map((item) {
       List<String> groceryData = item.split(':').map((item) => item.toString().trim()).toList();
 
       GroceryItem grocery = new GroceryItem(title: groceryData[0]);
@@ -193,6 +200,8 @@ class GroceryListState extends State<GroceryList> {
         [ new GroceryItem(title: item.title, purchased: false, amount: item.amount) ]
       );
     }
+
+    this._groceryListSort();
   }
 
   void _pushAddScreen() {
@@ -218,6 +227,7 @@ class GroceryListState extends State<GroceryList> {
       new MaterialPageRoute(
         builder: (context) {
           return new Scaffold(
+            resizeToAvoidBottomPadding: true,
             appBar: new AppBar(
               title: new Text('Add new Grocery List'),
               actions: <Widget>[
@@ -351,6 +361,12 @@ class GroceryListState extends State<GroceryList> {
             validator: (value) {
               if (value.isEmpty) {
                 return 'Please enter a grocery item';
+              }
+              var foundItems = this._groceryItems.where((item) {
+                return removeDiacritics(item.title.toLowerCase()) == removeDiacritics(value.trim().toLowerCase());
+              }).toList();
+              if (foundItems.length > 0) {
+                return 'This item already exists in the list';
               }
             },
             onSaved: (value) {
@@ -531,7 +547,8 @@ class GroceryListState extends State<GroceryList> {
     Color itemColor = !item.purchased ? Theme.of(context).textTheme.title.color : Colors.black45;
 
     return new Slidable(
-      delegate: new SlidableDrawerDelegate(),
+      key: new ObjectKey('item-$index'),
+      delegate: new SlidableScrollDelegate(),
       actionExtentRatio: 0.25,
       child: new Container(
         color: Colors.white,
